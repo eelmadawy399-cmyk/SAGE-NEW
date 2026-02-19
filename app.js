@@ -328,16 +328,35 @@ function executeFarmerAnalysis() {
             return;
         }
 
+        // In some EE cases the callback returns null/undefined without explicit error.
+        // Avoid breaking on property access and continue with full analysis.
+        if (!vResult || typeof vResult !== 'object') {
+            console.warn('Validation returned empty result, skipping validation gate.');
+            runFullAnalysis(farmArea, farmPoint, startDate, endDate, crop, lat, lng, buffer, false, false);
+            return;
+        }
+
+        function pickNumber(obj, keys, fallback) {
+            for (var i = 0; i < keys.length; i++) {
+                var key = keys[i];
+                if (obj[key] !== undefined && obj[key] !== null && !isNaN(obj[key])) {
+                    return Number(obj[key]);
+                }
+            }
+            return fallback;
+        }
+
         // Evaluate validation
-        var cropsProb = vResult.crops_prob || 0;
-        var bareProb = vResult.bare_prob || 0;
-        var builtProb = vResult.built_prob || 0;
-        var ndviMax = vResult.ndvi_max || 0;
-        var ndviRange = vResult.ndvi_range || 0;
-        var bsiMean = vResult.bsi_mean || 0;
-        var ndbiMean = vResult.ndbi_mean || 0;
-        var albedoMean = vResult.albedo_mean || 0;
-        var ndviStdDev = vResult.ndvi_stdDev || 0;
+        var cropsProb = pickNumber(vResult, ['crops_prob', 'crops'], 0);
+        var bareProb = pickNumber(vResult, ['bare_prob', 'bare'], 0);
+        var builtProb = pickNumber(vResult, ['built_prob', 'built'], 0);
+        var ndviMax = pickNumber(vResult, ['ndvi_max', 'NDVI_max'], 0);
+        var ndviMin = pickNumber(vResult, ['ndvi_min', 'NDVI_min'], 0);
+        var ndviRange = pickNumber(vResult, ['ndvi_range'], Math.max(0, ndviMax - ndviMin));
+        var bsiMean = pickNumber(vResult, ['bsi_mean', 'BSI_mean'], 0);
+        var ndbiMean = pickNumber(vResult, ['ndbi_mean', 'NDBI_mean'], 0);
+        var albedoMean = pickNumber(vResult, ['albedo_mean', 'Albedo_mean'], 0);
+        var ndviStdDev = pickNumber(vResult, ['ndvi_stdDev', 'NDVI_stdDev'], 0);
 
         // Desert detection
         var desertReasons = [];

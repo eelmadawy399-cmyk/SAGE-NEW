@@ -586,7 +586,34 @@ function validateFarmLocation(geometry, start, end) {
             .set('observation_count', s2Size);
     })();
 
-    return ee.Dictionary(ee.Algorithms.If(hasDw.or(hasS2), computed, fallback));
+    var normalized = ee.Dictionary(computed).set({
+        crops_prob: ee.Dictionary(computed).get('crops', 0),
+        bare_prob: ee.Dictionary(computed).get('bare', 0),
+        built_prob: ee.Dictionary(computed).get('built', 0),
+        ndvi_max: ee.Dictionary(computed).get('NDVI_max', 0),
+        ndvi_min: ee.Dictionary(computed).get('NDVI_min', 0),
+        ndvi_range: ee.Number(ee.Dictionary(computed).get('NDVI_max', 0))
+            .subtract(ee.Number(ee.Dictionary(computed).get('NDVI_min', 0))),
+        bsi_mean: ee.Dictionary(computed).get('BSI_mean', 0),
+        ndbi_mean: ee.Dictionary(computed).get('NDBI_mean', 0),
+        albedo_mean: ee.Dictionary(computed).get('Albedo_mean', 0),
+        ndvi_stdDev: ee.Dictionary(computed).get('NDVI_stdDev', 0)
+    });
+
+    var normalizedFallback = ee.Dictionary(fallback).set({
+        crops_prob: 0,
+        bare_prob: 1,
+        built_prob: 0,
+        ndvi_max: 0,
+        ndvi_min: 0,
+        ndvi_range: 0,
+        bsi_mean: 1,
+        ndbi_mean: 0,
+        albedo_mean: 1,
+        ndvi_stdDev: 0
+    });
+
+    return ee.Dictionary(ee.Algorithms.If(hasDw.or(hasS2), normalized, normalizedFallback));
 }
 
 // ═══════════════════════════════════════════════════════════════
